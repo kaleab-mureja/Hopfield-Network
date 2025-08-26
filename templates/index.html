@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hopfield Network</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Hopfield Network</h1>
+            <p>A demonstration of content-addressable memory for handwritten digit recognition.</p>
+        </header>
+
+        <section class="section input-section">
+            <h2>Input Parameters</h2>
+            <div class="input-group">
+                <div class="input-label-group">
+                    <label for="digit">Test Digit (0-9):</label>
+                    <input type="number" id="digit" value="1" min="0" max="9">
+                </div>
+                <div class="input-label-group">
+                    <label for="noise">Noise Level (0.0 - 1.0):</label>
+                    <input type="number" id="noise" value="0.2" min="0.0" max="1.0" step="0.1">
+                </div>
+            </div>
+            <div class="input-group">
+                <button id="recognize-single-btn">Recognize Single</button>
+                <button id="recognize-all-btn" class="btn-secondary">Test All Digits</button>
+            </div>
+        </section>
+
+        <section id="single-result-card" class="section">
+            <h2>Single Recognition Result</h2>
+            <p id="single-result-text"></p>
+            <div class="spinner" id="single-spinner"></div>
+            <div id="single-image-container">
+            </div>
+        </section>
+
+        <section id="all-results-grid" class="section">
+            <h2>All Recognition Results</h2>
+            <div class="spinner" id="all-spinner"></div>
+            <div class="results-grid" id="results-grid-container">
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.getElementById('recognize-single-btn').addEventListener('click', () => {
+            const digit = document.getElementById('digit').value;
+            const noise = document.getElementById('noise').value;
+            const singleCard = document.getElementById('single-result-card');
+            const allGrid = document.getElementById('all-results-grid');
+            const singleSpinner = document.getElementById('single-spinner');
+            
+            // Set up visibility for single result
+            if (singleCard && allGrid && singleSpinner) {
+                singleCard.style.display = 'flex';
+                allGrid.style.display = 'none';
+                singleSpinner.style.display = 'block';
+            }
+
+            fetch('/recognize_single', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ digit, noise })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (singleSpinner) {
+                    singleSpinner.style.display = 'none';
+                }
+                if (data.error) {
+                    document.getElementById('single-result-text').textContent = "Error: " + data.error;
+                    return;
+                }
+
+                const resultText = document.getElementById('single-result-text');
+                const isCorrect = parseInt(digit) === data.recognized_digit;
+                if (resultText) {
+                    resultText.textContent = `Original: ${digit} | Recognized as: ${data.recognized_digit}`;
+                    resultText.className = 'result-text ' + (isCorrect ? 'correct' : 'incorrect');
+                }
+
+                const imageContainer = document.getElementById('single-image-container');
+                if (imageContainer) {
+                    imageContainer.innerHTML = `
+                        <div class="image-row">
+                            <div class="image-and-description">
+                                <img src="${data.image_url}" alt="Hopfield Network Result" id="single-result-img">
+                                <div class="descriptions-row">
+                                    <p>Original</p>
+                                    <p>Noisy Input</p>
+                                    <p>Recalled</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                if (singleSpinner) {
+                    singleSpinner.style.display = 'none';
+                }
+                const resultText = document.getElementById('single-result-text');
+                if (resultText) {
+                    resultText.textContent = 'An error occurred. Please check the console.';
+                }
+                console.error('Error:', error);
+            });
+        });
+
+        document.getElementById('recognize-all-btn').addEventListener('click', () => {
+            const noise = document.getElementById('noise').value;
+            const singleCard = document.getElementById('single-result-card');
+            const allGrid = document.getElementById('all-results-grid');
+            const allSpinner = document.getElementById('all-spinner');
+
+            // Set up visibility for all results
+            if (singleCard && allGrid && allSpinner) {
+                singleCard.style.display = 'none';
+                allGrid.style.display = 'flex';
+                allSpinner.style.display = 'block';
+            }
+
+            const resultsGridContainer = document.getElementById('results-grid-container');
+            if (resultsGridContainer) {
+                resultsGridContainer.innerHTML = '';
+            }
+
+            fetch('/recognize_all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ noise })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (allSpinner) {
+                    allSpinner.style.display = 'none';
+                }
+                const resultsGridContainer = document.getElementById('results-grid-container');
+                if (data.error) {
+                    if (resultsGridContainer) {
+                        resultsGridContainer.textContent = "Error: " + data.error;
+                    }
+                    return;
+                }
+                data.forEach(result => {
+                    if (resultsGridContainer) {
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'result-item';
+
+                        const isCorrect = result.original_digit === result.recognized_digit;
+                        const resultParagraph = document.createElement('p');
+                        resultParagraph.className = isCorrect ? 'correct' : 'incorrect';
+                        resultParagraph.textContent = `Original: ${result.original_digit} | Recognized: ${result.recognized_digit}`;
+
+                        const imageAndDescriptionDiv = document.createElement('div');
+                        imageAndDescriptionDiv.className = 'image-and-description';
+
+                        const img = document.createElement('img');
+                        img.src = result.image_url;
+                        img.alt = `Digit ${result.original_digit}`;
+
+                        const descriptionDiv = document.createElement('div');
+                        descriptionDiv.className = 'descriptions-row';
+                        descriptionDiv.innerHTML = `
+                            <p>Original</p>
+                            <p>Noisy Input</p>
+                            <p>Recalled</p>
+                        `;
+
+                        imageAndDescriptionDiv.appendChild(img);
+                        imageAndDescriptionDiv.appendChild(descriptionDiv);
+
+                        resultItem.appendChild(resultParagraph);
+                        resultItem.appendChild(imageAndDescriptionDiv);
+
+                        resultsGridContainer.appendChild(resultItem);
+                    }
+                });
+            })
+            .catch(error => {
+                if (allSpinner) {
+                    allSpinner.style.display = 'none';
+                }
+                const resultsGridContainer = document.getElementById('results-grid-container');
+                if (resultsGridContainer) {
+                    resultsGridContainer.textContent = 'An error occurred. Please check the console.';
+                }
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

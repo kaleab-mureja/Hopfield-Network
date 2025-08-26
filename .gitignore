@@ -1,0 +1,14 @@
+# Python bytecode and cache files
+__pycache__/
+*.pyc
+
+# Virtual environment directory
+venv/
+
+# Flask-specific files
+instance/
+
+# Local data and logs
+*.sqlite3
+*.log
+.env
