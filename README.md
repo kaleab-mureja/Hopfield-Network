@@ -13,8 +13,8 @@ This is a web-based demonstration of a Hopfield network, a recurrent neural netw
 
 1.  **Clone the repository**:
     ```sh
-    git clone [your-repository-url]
-    cd [your-project-directory]
+    git clone git@github.com:kaleab-mureja/Hopfield-Network.git
+    cd Hopfield-Networks
     ```
 2.  **Install dependencies**:
     ```sh
