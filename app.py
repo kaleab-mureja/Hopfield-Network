@@ -16,21 +16,15 @@ def preprocess_image(image):
 def show_image(vector, ax, diff_vector=None):
     image = vector.reshape(28, 28)
     
-    # Create a base black and white image
     ax.imshow(image, cmap='gray', vmin=-1, vmax=1)
     
-    # If a difference vector is provided, highlight the changed pixels
     if diff_vector is not None:
         diff_image = diff_vector.reshape(28, 28)
-        # Highlight pixels where the diff is not zero (i.e., where they differ from the original)
         highlight_mask = np.abs(diff_image) > 0
         
-        # We need a 3-channel image to show color
-        # Normalize to 0-1 range for a proper RGB image
         normalized_image = (image + 1) / 2
         colored_image = np.stack([normalized_image] * 3, axis=-1)
         
-        # Set red for pixels that are different
         colored_image[highlight_mask] = [1, 0, 0] # R=1 (red), G=0, B=0
         
         ax.imshow(colored_image, vmin=0, vmax=1)
@@ -38,7 +32,7 @@ def show_image(vector, ax, diff_vector=None):
     ax.set_xticks([])
     ax.set_yticks([])
     ax.grid(True, which='both', color='#444', linestyle='-', linewidth=0.5)
-    ax.set_facecolor('none')  # Set axes background to transparent
+    ax.set_facecolor('none')
     ax.spines['left'].set_color('#c9d1d9')
     ax.spines['bottom'].set_color('#c9d1d9')
     ax.spines['right'].set_color('#c9d1d9')
